@@ -1,0 +1,45 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;900&display=swap");
+
+.gauge-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+#plotdiv {
+    width: 100%;
+    height: 300px;
+}
+canvas {
+    width: 100%;
+}
+
+
+#log {
+    height: 300px; 
+    overflow-y: auto;
+}
+
+#closeBtn{
+    visibility: hidden;
+}
+  
+#buttonStart{
+  display: none;
+}
+
+#outResBtn{
+  display: none;
+}
+#ledResBtn{
+  display: none;
+}
+
+#canvasID{
+  visibility: hidden;
+}
+
+.disc-btn{
+    margin-right: 25px;
+    margin-bottom: 20px;
+    margin-top: 10px;
+}

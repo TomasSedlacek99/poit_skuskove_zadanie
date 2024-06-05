@@ -1,0 +1,300 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>NodeMCU-IoT</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.5/socket.io.min.js"></script>
+  <script src="static/libs/plotly-latest.min.js"></script>
+  <script src="static/libs/gauge.min.js"></script>
+  <link rel="stylesheet" href="../static/style.css">
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script type="text/javascript" charset="utf-8">
+
+    $(document).ready(function() {
+       
+       var ledResGaugeConfig = {
+        units: "%",
+        minValue: -20,
+        maxValue: 120,
+        majorTicks: ['-20', '0', '20', '40', '60', '80', '100','120'],
+        };
+
+        var outResGaugeConfig = {
+          units: "%",
+          minValue: 0,
+          maxValue: 100,
+          majorTicks: ['0', '20', '40', '60', '80', '100'],
+        };
+        var gaugeConfig = ledResGaugeConfig;
+
+       var gauge = new RadialGauge({
+          renderTo: 'canvasID',
+          width: 300,
+          height: 300,
+          ...gaugeConfig,         
+          minorTicks: 5,
+          strokeTicks: true,
+          colorPlate: "#fff",
+          borderShadowWidth: 0,
+          borders: false,
+          needleType: "arrow",
+          needleWidth: 2,
+          needleCircleSize: 7,
+          needleCircleOuter: true,
+          needleCircleInner: false,
+          animationDuration: 1500,
+          animationRule: "linear"
+      });
+      gauge.value = "0";
+       
+       function updateGaugeConfig(newConfig) {
+        gaugeConfig = newConfig;
+        gauge.update(gaugeConfig);
+      }
+
+      var x = new Array();
+      var y = new Array();
+      var trace;
+      var layout;
+      
+      var can_change_sensor = 1;
+      
+      namespace = '/test';
+      var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+
+      socket.on('connect', function() {
+        socket.emit('my_event', {data: 'I\'m connected!', value: 1}); });
+
+      socket.on('my_response', function(msg) {
+        console.log(msg);
+        $('#log').append('Photoresistor % value: #'+msg.count+': '+msg.sensor_data + '<br>').html(); 
+        
+        gauge.value = msg.sensor_data;  
+        
+        
+        x.push(parseFloat(msg.count));
+        y.push(parseFloat(msg.sensor_data));
+        trace = {
+            x: x,
+            y: y,
+        };       
+        layout = {
+          xaxis: {
+              title: 'x',
+          },
+          yaxis: {
+              title: 'y',
+          }
+        };
+        console.log(trace);
+        var traces = new Array();
+        traces.push(trace);
+        Plotly.newPlot($('#plotdiv')[0], traces, layout);   
+        });
+
+      $('form#emit').submit(function(event) {
+          socket.emit('my_event', {value: $('#emit_value').val()});
+          return false; });
+      $('#buttonStart').click(function(event) {
+          console.log("db event")
+          console.log($('#buttonStart').val());
+          socket.emit('db_event', {value: $('#buttonStart').val()});
+          if ($(this).val() == "start") {
+            $(this).val("stop");
+            $(this).text("Stop");
+            
+            $('#canvasID').css('visibility', 'visible');
+            gauge.draw();
+            can_change_sensor = 0;
+            $('#log').empty();
+            Plotly.purge($('#plotdiv')[0]);
+            x.length = 0;
+            y.length = 0;
+          } else {
+            $(this).val("start");
+            $(this).text("Start");
+            can_change_sensor = 1;
+          }
+          return false; }); 
+          
+        $('#ledResBtn').click(function(event) {
+            if(can_change_sensor == 1){
+              socket.emit('switch_data', {value: "LedResistor"});
+              $(this).addClass('active');
+              $('#outResBtn').removeClass('active');
+              updateGaugeConfig(ledResGaugeConfig);
+            }
+        });
+
+        $('#outResBtn').click(function(event) {
+            if(can_change_sensor == 1){
+              socket.emit('switch_data', {value: "OutResistor"});
+              $(this).addClass('active');
+              $('#ledResBtn').removeClass('active');
+              updateGaugeConfig(outResGaugeConfig);
+            }
+        });
+
+        $('#showArchiveBtn').click(function(event) {
+          var data_file_name = null;
+          var dataWanted = prompt("Enter sensor (ledRes/outRes): ");
+          switch (dataWanted){
+              case "ledRes":
+                break;
+              case "outRes":
+                break;
+              default: 
+                alert("Wrong sensor name provided!");
+          }
+          var dataId = prompt("Enter data ID:");
+          if (dataId !== null) {
+            $.get('/get_data/' + dataWanted + '/' + dataId, function(response) {
+              var archivedData = response.data;
+              var x = archivedData.map(d => d.count);
+              var y = archivedData.map(d => d.data);
+
+              var trace = {
+                  x: x,
+                  y: y,
+              };       
+              var layout = {
+                xaxis: {
+                    title: 'Data counter',
+                },
+                yaxis: {
+                    title: 'Photoresistor % value',
+                }
+              };
+              var traces = [trace];
+              Plotly.newPlot($('#plotdiv')[0], traces, layout); 
+
+              // Update gauge with last data point
+              if (archivedData.length > 0) {
+                gauge.value = archivedData[archivedData.length - 1].sensor_data;
+              }
+
+              // Log data
+              $('#log').empty();
+              archivedData.forEach(function(d) {
+                $('#log').append('Counter: ' + d.count + ', Data: ' + d.data + '<br>').html();
+              });
+            }).fail(function() {
+              alert("Invalid ID or Data file name!");
+            });
+          }
+        });
+        
+        
+        $('#showDatabaseBtn').click(function(event) {
+          var data_file_name = null;
+          var dataWanted = prompt("Enter sensor (ledRes/outRes): ");
+          switch (dataWanted){
+              case "ledRes":
+                break;
+              case "outRes":
+                break;
+              default: 
+                alert("Wrong sensor name provided!");
+          }
+          var dataId = prompt("Enter data ID:");
+          if (dataId !== null) {
+            $.get('/dbdata/' + dataWanted + '/' + dataId, function(response) {
+              var archivedData = response.data;
+              var x = archivedData.map(d => d.count);
+              var y = archivedData.map(d => d.data);
+
+              var trace = {
+                  x: x,
+                  y: y,
+              };       
+              var layout = {
+                xaxis: {
+                    title: 'x',
+                },
+                yaxis: {
+                    title: 'y',
+                }
+              };
+              var traces = [trace];
+              Plotly.newPlot($('#plotdiv')[0], traces, layout); 
+
+              // Update gauge with last data point
+              if (archivedData.length > 0) {
+                gauge.value = archivedData[archivedData.length - 1].sensor_data;
+              }
+
+              // Log data
+              $('#log').empty();
+              archivedData.forEach(function(d) {
+                $('#log').append('x: ' + d.count + ', Data: ' + d.data + '<br>').html();
+              });
+            }).fail(function() {
+              alert("Invalid ID");
+            });
+          }
+        });
+    
+      $('form#disconnect').submit(function(event) {
+          socket.emit('disconnect_request');
+          localStorage.clear();
+          return false; });  
+          
+          
+      $('#openBtn').click(function(event) {
+        socket.emit('initialize');
+          
+        initialize();
+        
+        localStorage.setItem('initialized', 'true');
+        });
+        
+        function initialize() {
+          $('#openBtn').hide();
+          $('#ledResBtn, #outResBtn, #buttonStart').show(); 
+          $('#closeBtn').css('visibility', 'visible');
+        }
+        
+        
+        var initialized = localStorage.getItem('initialized');
+        if (initialized === 'true') {
+            initialize();
+        }
+
+      });
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <h2 class="text-center my-4">Led Photoresistor and Outside Photoresistor monitoring</h2>
+        <div class="text-center mt-4">
+            <button id="openBtn" class="btn btn-primary">Open</button>
+            <button id="buttonStart" class="btn btn-success" type="submit" value="start">Start</button>
+            <button id="ledResBtn" class="btn btn-info active" type="button">Led Resistor</button>
+            <button id="outResBtn" class="btn btn-info" type="button">Outside Resistor</button>
+            <button id="showArchiveBtn" class="btn btn-secondary" type="button">Data from JSON</button>
+            <button id="showDatabaseBtn" class="btn btn-secondary" type="button">Database data</button>
+            <div id="closeBtn" class="disc-btn">
+                <form id="disconnect" method="POST" action="#">
+                    <input type="submit" value="Close" class="btn btn-danger">
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-3">
+                <div id="log" class="border rounded p-3"></div>
+            </div>
+            <div class="col-lg-6">
+                <div id="plotdiv" class="border rounded"></div>
+            </div>
+            <div class="col-lg-3">
+                <div class="gauge-container">
+                    <canvas id="canvasID"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
