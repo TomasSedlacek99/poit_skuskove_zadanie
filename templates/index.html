@@ -200,7 +200,8 @@
           var dataId = prompt("Enter data ID:");
           if (dataId !== null) {
             $.get('/dbdata/' + dataWanted + '/' + dataId, function(response) {
-              var archivedData = response.data;
+              var archivedData = JSON.parse(response);
+              console.log(archivedData);
               var x = archivedData.map(d => d.count);
               var y = archivedData.map(d => d.data);
 
@@ -210,10 +211,10 @@
               };       
               var layout = {
                 xaxis: {
-                    title: 'x',
+                    title: 'Data counter',
                 },
                 yaxis: {
-                    title: 'y',
+                    title: 'Photoresistor % value',
                 }
               };
               var traces = [trace];
@@ -227,7 +228,7 @@
               // Log data
               $('#log').empty();
               archivedData.forEach(function(d) {
-                $('#log').append('x: ' + d.count + ', Data: ' + d.data + '<br>').html();
+                $('#log').append('Counter: ' + d.count + ', Data: ' + d.data + '<br>').html();
               });
             }).fail(function() {
               alert("Invalid ID");
