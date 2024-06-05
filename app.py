@@ -146,7 +146,7 @@ def dbdata(data_wanted,data_id):
         table_name = "data_1"
     elif data_wanted == 'outRes':
         table_name= "data_2"
-    cursor.execute("SELECT data FROM " + table_name + " WHERE id=%s", str(data_id))
+    cursor.execute("SELECT data FROM " + table_name + " WHERE id=%s", (str(data_id),))
     rv = cursor.fetchone()
     return str(rv[0])
     

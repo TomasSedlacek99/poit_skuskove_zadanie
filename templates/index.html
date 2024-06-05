@@ -17,7 +17,7 @@
         units: "%",
         minValue: -20,
         maxValue: 120,
-        majorTicks: ['-20', '0', '20', '40', '60', '80', '100','120'],
+        majorTicks: ['-20', '-10', '0', '10', '20', '30', '40', '50', '60', '70', '80', '90', '100', '110','120'],
         };
 
         var outResGaugeConfig = {
@@ -43,7 +43,7 @@
           needleCircleSize: 7,
           needleCircleOuter: true,
           needleCircleInner: false,
-          animationDuration: 1500,
+          animationDuration: 1000,
           animationRule: "linear"
       });
       gauge.value = "0";
@@ -68,7 +68,7 @@
 
       socket.on('my_response', function(msg) {
         console.log(msg);
-        $('#log').append('Photoresistor % value: #'+msg.count+': '+msg.sensor_data + '<br>').html(); 
+        $('#log').append('#'+ msg.count + ', Photoresistor % value: '+msg.sensor_data + '<br>').html(); 
         
         gauge.value = msg.sensor_data;  
         
@@ -268,14 +268,16 @@
 
 <body>
     <div class="container">
-        <h2 class="text-center my-4">Led Photoresistor and Outside Photoresistor monitoring</h2>
+        <h1 class="text-center my-4">Led Photoresistor / Outside Photoresistor monitoring</h1>
         <div class="text-center mt-4">
-            <button id="openBtn" class="btn btn-primary">Open</button>
+            <button id="openBtn" class="btn btn-success">Open</button>
             <button id="buttonStart" class="btn btn-success" type="submit" value="start">Start</button>
-            <button id="ledResBtn" class="btn btn-info active" type="button">Led Resistor</button>
-            <button id="outResBtn" class="btn btn-info" type="button">Outside Resistor</button>
-            <button id="showArchiveBtn" class="btn btn-secondary" type="button">Data from JSON</button>
-            <button id="showDatabaseBtn" class="btn btn-secondary" type="button">Database data</button>
+            <button id="ledResBtn" class="btn btn-primary active" type="button">Led Photoresistor</button>
+            <button id="outResBtn" class="btn btn-primary" type="button">Outside Photoresistor</button>
+            <div class="text-center my-2">
+              <button id="showArchiveBtn" class="btn btn-info" type="button">Data from JSON by ID</button>
+              <button id="showDatabaseBtn" class="btn btn-info" type="button">Data from database by ID</button>
+            </div>
             <div id="closeBtn" class="disc-btn">
                 <form id="disconnect" method="POST" action="#">
                     <input type="submit" value="Close" class="btn btn-danger">
@@ -283,18 +285,24 @@
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-lg-3">
+        <div class="row my-2">
+            <div class="col-lg-1"></div>
+            <div class="col-lg-5">
                 <div id="log" class="border rounded p-3"></div>
             </div>
-            <div class="col-lg-6">
-                <div id="plotdiv" class="border rounded"></div>
-            </div>
-            <div class="col-lg-3">
+            <div class="col-lg-5">
                 <div class="gauge-container">
                     <canvas id="canvasID"></canvas>
                 </div>
             </div>
+            <div class="col-lg-1"></div>
+        </div>
+        <div class="row my-2">
+          <div class="col-lg-1"></div>
+          <div class="col-lg-10">
+                <div id="plotdiv" class="border rounded"></div>
+          </div>
+          <div class="col-lg-1"></div>
         </div>
     </div>
 </body>
